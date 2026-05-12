@@ -130,4 +130,20 @@ describe('AwsCdkCloudWanTgwS2SVpnStack', () => {
   test('creates worker EC2 + VPN router instances (6 + 3 = 9)', () => {
     template.resourceCountIs('AWS::EC2::Instance', 9);
   });
+
+  test('registers 3 mock on-prem sites/devices/links to Network Manager', () => {
+    template.resourceCountIs('AWS::NetworkManager::Site', 3);
+    template.resourceCountIs('AWS::NetworkManager::Device', 3);
+    template.resourceCountIs('AWS::NetworkManager::Link', 3);
+    template.resourceCountIs('AWS::NetworkManager::LinkAssociation', 3);
+    template.resourceCountIs(
+      'AWS::NetworkManager::CustomerGatewayAssociation',
+      3,
+    );
+    template.hasResourceProperties('AWS::NetworkManager::Device', {
+      Vendor: 'Libreswan Project',
+      Model: 'Libreswan + FRR on Amazon Linux 2023',
+      Type: 'ipsec-router',
+    });
+  });
 });

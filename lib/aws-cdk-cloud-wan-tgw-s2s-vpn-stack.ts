@@ -14,6 +14,7 @@ import {
   TGW1_VPN_CONFIG,
   TGW2_CONFIG,
   TGW2_VPN_CONFIG,
+  ON_PREM_SITE_CONFIG,
   cloudWanSegment,
   cloudWanTagKey,
 } from "./network-config";
@@ -55,6 +56,8 @@ export class AwsCdkCloudWanTgwS2SVpnStack extends cdk.Stack {
       awsBgpAsn: CLOUD_WAN_VPN_CONFIG.awsBgpAsn,
       tunnel1InsideCidr: CLOUD_WAN_VPN_CONFIG.tunnel1InsideCidr,
       tunnel2InsideCidr: CLOUD_WAN_VPN_CONFIG.tunnel2InsideCidr,
+      globalNetworkId: coreNetwork.globalNetworkId,
+      onPremSite: ON_PREM_SITE_CONFIG.vpn1,
     });
 
     // TGW1 配下の VPC
@@ -78,6 +81,8 @@ export class AwsCdkCloudWanTgwS2SVpnStack extends cdk.Stack {
       awsBgpAsn: TGW1_VPN_CONFIG.awsBgpAsn,
       tunnel1InsideCidr: TGW1_VPN_CONFIG.tunnel1InsideCidr,
       tunnel2InsideCidr: TGW1_VPN_CONFIG.tunnel2InsideCidr,
+      globalNetworkId: coreNetwork.globalNetworkId,
+      onPremSite: ON_PREM_SITE_CONFIG.vpn2,
     });
 
     // TGW2 配下の VPC
@@ -106,6 +111,8 @@ export class AwsCdkCloudWanTgwS2SVpnStack extends cdk.Stack {
       tunnel1InsideCidr: TGW2_VPN_CONFIG.tunnel1InsideCidr,
       tunnel2InsideCidr: TGW2_VPN_CONFIG.tunnel2InsideCidr,
       createEicEndpoint: false,
+      globalNetworkId: coreNetwork.globalNetworkId,
+      onPremSite: ON_PREM_SITE_CONFIG.vpn3,
     });
 
     // 各 TGW を Cloud WAN core network に peering する処理を共通化。

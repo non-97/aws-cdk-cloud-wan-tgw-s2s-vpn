@@ -80,3 +80,61 @@ export const NETWORK_CONFIG = {
   tgwPrivate2: { vpcCidr: '10.20.0.0/16' },
   tgwVpn2: { vpcCidr: '10.21.0.0/16' },
 } as const satisfies Record<string, VpcNetworkConfig>;
+
+/** 擬似オンプレ拠点 (Site/Device/Link) のメタデータ */
+export interface OnPremSiteConfig {
+  readonly siteDescription: string;
+  readonly siteAddress: string;
+  readonly siteLatitude: string;
+  readonly siteLongitude: string;
+  readonly deviceDescription: string;
+  readonly deviceVendor: string;
+  readonly deviceModel: string;
+  readonly deviceType: string;
+  readonly linkDescription: string;
+  readonly linkType: string;
+  readonly linkProvider: string;
+  readonly linkUploadSpeed: number;
+  readonly linkDownloadSpeed: number;
+}
+
+/** Device/Link はベンダー Libreswan で全拠点共通 */
+const COMMON_DEVICE_LINK = {
+  deviceDescription: 'Libreswan IPsec VPN router (Mock on-prem)',
+  deviceVendor: 'Libreswan Project',
+  deviceModel: 'Libreswan + FRR on Amazon Linux 2023',
+  deviceType: 'ipsec-router',
+  linkDescription: 'Broadband uplink (Mock)',
+  linkType: 'broadband',
+  linkProvider: 'Internet',
+  linkUploadSpeed: 1000,
+  linkDownloadSpeed: 1000,
+} as const satisfies Omit<
+  OnPremSiteConfig,
+  'siteDescription' | 'siteAddress' | 'siteLatitude' | 'siteLongitude'
+>;
+
+/** 擬似オンプレ拠点 (https://classmethod.jp/company/access/ を参考) */
+export const ON_PREM_SITE_CONFIG = {
+  vpn1: {
+    siteDescription: 'Mock on-prem site - Classmethod Hibiya HQ',
+    siteAddress: '東京都港区西新橋1-1-1 日比谷フォートタワー26階',
+    siteLatitude: '35.6713',
+    siteLongitude: '139.7541',
+    ...COMMON_DEVICE_LINK,
+  },
+  vpn2: {
+    siteDescription: 'Mock on-prem site - Classmethod Sapporo office',
+    siteAddress: '北海道札幌市中央区北3条西1-1-1 札幌ブリックキューブ10階',
+    siteLatitude: '43.0651',
+    siteLongitude: '141.3534',
+    ...COMMON_DEVICE_LINK,
+  },
+  vpn3: {
+    siteDescription: 'Mock on-prem site - Classmethod Osaka office',
+    siteAddress: '大阪府大阪市中央区伏見町3-6-3 三菱UFJ信託銀行大阪ビル8階',
+    siteLatitude: '34.6892',
+    siteLongitude: '135.5023',
+    ...COMMON_DEVICE_LINK,
+  },
+} as const satisfies Record<string, OnPremSiteConfig>;

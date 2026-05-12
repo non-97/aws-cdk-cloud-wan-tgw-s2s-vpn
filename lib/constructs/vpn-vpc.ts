@@ -16,6 +16,7 @@ import {
   RFC1918_CIDRS,
   VPN_COMMON_CONFIG,
   cloudWanTagKey,
+  OnPremSiteConfig,
 } from '../network-config';
 
 /** VPN attach 先 */
@@ -52,6 +53,19 @@ export interface VpnVpcProps {
    * @default true
    */
   readonly createEicEndpoint?: boolean;
+  /**
+   * Network Manager の Global Network ID。Site / Device / Link 等の
+   * 擬似オンプレ拠点メタデータを登録する場合に指定する。
+   *
+   * @default - Site/Device/Link を作成しない
+   */
+  readonly globalNetworkId?: string;
+  /**
+   * 擬似オンプレ拠点のメタデータ。`globalNetworkId` と併せて指定する。
+   *
+   * @default - Site/Device/Link を作成しない
+   */
+  readonly onPremSite?: OnPremSiteConfig;
 }
 
 export class VpnVpc extends Construct {
@@ -309,6 +323,68 @@ export class VpnVpc extends Construct {
       destinationCidrBlock: '0.0.0.0/0',
       networkInterfaceId: vpnEni1.attrId,
     });
+
+    // Network Manager の Site / Device / Link / CustomerGatewayAssociation を
+    // 擬似オンプレ拠点として登録する (経路制御には影響せずトポロジ可視化目的)。
+    if (props.globalNetworkId && props.onPremSite) {
+      const site = new networkmanager.CfnSite(this, 'Site', {
+        globalNetworkId: props.globalNetworkId,
+        description: props.onPremSite.siteDescription,
+        location: {
+          address: props.onPremSite.siteAddress,
+          latitude: props.onPremSite.siteLatitude,
+          longitude: props.onPremSite.siteLongitude,
+        },
+      });
+
+      const device = new networkmanager.CfnDevice(this, 'Device', {
+        globalNetworkId: props.globalNetworkId,
+        siteId: site.attrSiteId,
+        description: props.onPremSite.deviceDescription,
+        vendor: props.onPremSite.deviceVendor,
+        model: props.onPremSite.deviceModel,
+        type: props.onPremSite.deviceType,
+      });
+
+      const link = new networkmanager.CfnLink(this, 'Link', {
+        globalNetworkId: props.globalNetworkId,
+        siteId: site.attrSiteId,
+        description: props.onPremSite.linkDescription,
+        type: props.onPremSite.linkType,
+        provider: props.onPremSite.linkProvider,
+        bandwidth: {
+          uploadSpeed: props.onPremSite.linkUploadSpeed,
+          downloadSpeed: props.onPremSite.linkDownloadSpeed,
+        },
+      });
+
+      new networkmanager.CfnLinkAssociation(this, 'DeviceLinkAssociation', {
+        globalNetworkId: props.globalNetworkId,
+        deviceId: device.attrDeviceId,
+        linkId: link.attrLinkId,
+      });
+
+      const cgwAssoc = new networkmanager.CfnCustomerGatewayAssociation(
+        this,
+        'CustomerGatewayAssociation',
+        {
+          globalNetworkId: props.globalNetworkId,
+          customerGatewayArn: cdk.Arn.format(
+            {
+              service: 'ec2',
+              resource: 'customer-gateway',
+              resourceName: cgw.ref,
+            },
+            stack,
+          ),
+          deviceId: device.attrDeviceId,
+          linkId: link.attrLinkId,
+        },
+      );
+      // CustomerGatewayAssociation は CGW が VPN connection に bind されてから
+      // 実行する必要があるため、VPN connection への依存を明示する。
+      cgwAssoc.node.addDependency(vpnConn);
+    }
 
     if (props.attachment.kind === 'cloudWan') {
       const cloudWan = props.attachment;
